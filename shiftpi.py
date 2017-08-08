@@ -26,7 +26,7 @@ _SRCLK_pin = 22   #pin 11 on the 75HC595
 _registers = list()
 
 #How many of the shift registers - you can change them with shiftRegisters method
-_number_of_shiftregisters = 1
+_number_of_shiftregisters = 3
 
 def pinsSetup(**kwargs):
     '''
@@ -95,12 +95,15 @@ def digitalWrite(pin, mode):
         _setPin(pin, mode)
     _execute()
 
-def delay(millis):
+def setRegisters(buf, execute=True):
     '''
-    Used for creating a delay between commands
+    Set all pins
     '''
-    millis_to_seconds = float(millis)/1000
-    return sleep(millis_to_seconds)
+    global _registers
+    _registers = buf
+    if execute:
+        _execute()
+
 
 def _all_pins():
     return _number_of_shiftregisters * 8
@@ -122,17 +125,24 @@ def _setPin(pin, mode):
         _registers.insert(pin, mode)
 
 def _execute():
+    global _registers
     all_pins = _all_pins()
-    GPIO.output(_RCLK_pin, GPIO.LOW)
+    GPIO.output(_RCLK_pin, GPIO.HIGH)
+    i = 0
 
     for pin in range(all_pins -1, -1, -1):
-        GPIO.output(_SRCLK_pin, GPIO.LOW)
-
-        pin_mode = _registers[pin]
-
-        GPIO.output(_SER_pin, pin_mode)
         GPIO.output(_SRCLK_pin, GPIO.HIGH)
 
-    GPIO.output(_RCLK_pin, GPIO.HIGH)
+        try:
+            pin_mode = _registers[pin]
+        except IndexError:
+            print(_registers)
+            pin_mode = GPIO.LOW
+
+
+        GPIO.output(_SER_pin, pin_mode)
+        GPIO.output(_SRCLK_pin, GPIO.LOW)
+
+    GPIO.output(_RCLK_pin, GPIO.LOW)
 
 pinsSetup()
